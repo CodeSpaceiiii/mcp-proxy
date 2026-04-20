@@ -117,6 +117,8 @@ class ReconnectingSession:
         last_error: Exception | None = None
 
         for retry_state in self._retry_states():
+            stale_connection: UpstreamConnection | None = None
+
             async with self._lock:
                 force_refresh = retry_state.attempt > 0 and _should_force_refresh(last_error)
                 token = await self._token_provider.get_token(force_refresh=force_refresh)
@@ -133,7 +135,21 @@ class ReconnectingSession:
                         self._retry_settings.max_attempts,
                         exc,
                     )
-                    await self._close_locked()
+                    # Detach the connection but do NOT close it inside the
+                    # lock / exception handler.  Closing SSE connections here
+                    # would trigger cancel-scope nesting violations because
+                    # sse_client's internal TaskGroup must be exited from a
+                    # clean cancel-scope stack.
+                    stale_connection = self._connection
+                    self._connection = None
+
+            # Close the stale connection *outside* the lock and outside the
+            # try/except block so the cancel-scope stack is clean.
+            if stale_connection is not None:
+                try:
+                    await stale_connection.close()
+                except Exception:
+                    LOGGER.debug("Error closing stale connection (ignored)", exc_info=True)
 
             if retry_state.attempt + 1 < self._retry_settings.max_attempts:
                 await anyio.sleep(retry_state.delay_seconds)

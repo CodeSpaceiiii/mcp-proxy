@@ -3,6 +3,10 @@ name = "alibabacloud-mcp-proxy"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
+    "alibabacloud-credentials>=1.0.8",
+    "alibabacloud-openapi-util>=0.2.4",
+    "alibabacloud-tea-openapi>=0.4.4",
+    "alibabacloud-tea-util>=0.3.14",
     "httpx>=0.28.1",
     "mcp>=1.27.0",
 ]

@@ -4,6 +4,16 @@ from dataclasses import dataclass
 from os import environ
 from typing import Mapping
 
+from alibabacloud_mcp_proxy.auth.ims_access_token import (
+    DEFAULT_IMS_CLIENT_ID,
+    DEFAULT_IMS_ENDPOINT,
+    DEFAULT_IMS_SCOPE,
+)
+
+# Built-in upstream for Alibaba Cloud OpenAPI MCP (streamable HTTP), Hangzhou.
+DEFAULT_MCP_SERVER_URL = "https://openapi-mcp.cn-hangzhou.aliyuncs.com/mcp"
+DEFAULT_MCP_REGION = "cn-hangzhou"
+
 
 class ProxyConfigurationError(ValueError):
     """Raised when the proxy is missing required configuration."""
@@ -52,16 +62,16 @@ class RetrySettings:
 class TokenSettings:
     bearer_token: str | None
     token_command: str | None
-    access_key_id: str | None
-    access_key_secret: str | None
-    security_token: str | None
+    ims_client_id: str
+    ims_scope: str
+    ims_endpoint: str
     refresh_skew_seconds: int = 60
 
 
 @dataclass(slots=True, frozen=True)
 class AlibabaCloudProxyConfig:
     server_url: str
-    region: str | None
+    region: str
     connect_timeout_seconds: float
     read_timeout_seconds: float
     log_level: str
@@ -82,15 +92,12 @@ class AlibabaCloudProxyConfig:
             if value is not None:
                 merged[key] = value
 
-        server_url = (merged.get("server_url") or "").strip()
-        if not server_url:
-            raise ProxyConfigurationError(
-                "Missing upstream MCP server URL. Set --server-url or ALIBABACLOUD_MCP_SERVER_URL."
-            )
+        server_url = (merged.get("server_url") or "").strip() or DEFAULT_MCP_SERVER_URL
+        region = (merged.get("region") or "").strip() or DEFAULT_MCP_REGION
 
         return cls(
             server_url=server_url,
-            region=(merged.get("region") or "").strip() or None,
+            region=region,
             connect_timeout_seconds=_parse_float(
                 merged.get("connect_timeout_seconds"),
                 default=10.0,
@@ -101,13 +108,13 @@ class AlibabaCloudProxyConfig:
                 default=120.0,
                 field_name="read timeout",
             ),
-            log_level=(merged.get("log_level") or "INFO").upper(),
+            log_level=(merged.get("log_level") or "ERROR").upper(),
             token=TokenSettings(
                 bearer_token=(merged.get("bearer_token") or "").strip() or None,
                 token_command=(merged.get("token_command") or "").strip() or None,
-                access_key_id=(merged.get("access_key_id") or "").strip() or None,
-                access_key_secret=(merged.get("access_key_secret") or "").strip() or None,
-                security_token=(merged.get("security_token") or "").strip() or None,
+                ims_client_id=(merged.get("ims_client_id") or "").strip() or DEFAULT_IMS_CLIENT_ID,
+                ims_scope=(merged.get("ims_scope") or "").strip() or DEFAULT_IMS_SCOPE,
+                ims_endpoint=(merged.get("ims_endpoint") or "").strip() or DEFAULT_IMS_ENDPOINT,
                 refresh_skew_seconds=_parse_int(
                     merged.get("refresh_skew_seconds"),
                     default=60,
@@ -144,12 +151,12 @@ class AlibabaCloudProxyConfig:
             "region": _env("ALIBABACLOUD_MCP_REGION"),
             "connect_timeout_seconds": _env("ALIBABACLOUD_MCP_CONNECT_TIMEOUT"),
             "read_timeout_seconds": _env("ALIBABACLOUD_MCP_READ_TIMEOUT"),
-            "log_level": _env("ALIBABACLOUD_MCP_LOG_LEVEL", "INFO"),
+            "log_level": _env("ALIBABACLOUD_MCP_LOG_LEVEL", "ERROR"),
             "bearer_token": _env("ALIBABACLOUD_MCP_BEARER_TOKEN"),
             "token_command": _env("ALIBABACLOUD_MCP_TOKEN_COMMAND"),
-            "access_key_id": _env("ALIBABA_CLOUD_ACCESS_KEY_ID"),
-            "access_key_secret": _env("ALIBABA_CLOUD_ACCESS_KEY_SECRET"),
-            "security_token": _env("ALIBABA_CLOUD_SECURITY_TOKEN"),
+            "ims_client_id": _env("ALIBABACLOUD_MCP_CLIENT_ID"),
+            "ims_scope": _env("ALIBABACLOUD_MCP_SCOPE"),
+            "ims_endpoint": _env("ALIBABACLOUD_MCP_IMS_ENDPOINT"),
             "refresh_skew_seconds": _env("ALIBABACLOUD_MCP_REFRESH_SKEW_SECONDS"),
             "max_attempts": _env("ALIBABACLOUD_MCP_RETRY_MAX_ATTEMPTS"),
             "base_delay_seconds": _env("ALIBABACLOUD_MCP_RETRY_BASE_SECONDS"),

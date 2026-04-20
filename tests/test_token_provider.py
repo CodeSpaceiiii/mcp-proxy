@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from alibabacloud_mcp_proxy.auth.ims_access_token import (
+    DEFAULT_IMS_CLIENT_ID,
+    DEFAULT_IMS_ENDPOINT,
+    DEFAULT_IMS_SCOPE,
+)
 from alibabacloud_mcp_proxy.auth.token_provider import (
     BearerToken,
     CachedBearerTokenProvider,
     StaticBearerTokenSource,
-    TokenAcquisitionError,
     build_token_provider,
 )
 from alibabacloud_mcp_proxy.config import TokenSettings
@@ -31,9 +36,9 @@ async def test_static_token_provider_returns_configured_token() -> None:
         TokenSettings(
             bearer_token="abc123",
             token_command=None,
-            access_key_id=None,
-            access_key_secret=None,
-            security_token=None,
+            ims_client_id=DEFAULT_IMS_CLIENT_ID,
+            ims_scope=DEFAULT_IMS_SCOPE,
+            ims_endpoint=DEFAULT_IMS_ENDPOINT,
         )
     )
 
@@ -66,14 +71,21 @@ async def test_cached_token_provider_refreshes_expiring_tokens() -> None:
     assert source.calls == 2
 
 
-def test_build_token_provider_requires_a_source() -> None:
-    with pytest.raises(TokenAcquisitionError):
-        build_token_provider(
-            TokenSettings(
-                bearer_token=None,
-                token_command=None,
-                access_key_id=None,
-                access_key_secret=None,
-                security_token=None,
-            )
+@pytest.mark.asyncio
+@patch(
+    "alibabacloud_mcp_proxy.auth.ims_access_token.generate_access_token_async",
+    new_callable=AsyncMock,
+)
+async def test_build_token_provider_uses_ims_when_no_explicit_token(mock_ims: AsyncMock) -> None:
+    mock_ims.return_value = BearerToken(value="ims-token")
+    provider = build_token_provider(
+        TokenSettings(
+            bearer_token=None,
+            token_command=None,
+            ims_client_id=DEFAULT_IMS_CLIENT_ID,
+            ims_scope=DEFAULT_IMS_SCOPE,
+            ims_endpoint=DEFAULT_IMS_ENDPOINT,
         )
+    )
+    assert await provider.get_token() == "ims-token"
+    mock_ims.assert_awaited()

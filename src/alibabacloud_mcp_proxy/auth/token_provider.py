@@ -8,6 +8,7 @@ from typing import Protocol
 
 import anyio
 
+from alibabacloud_mcp_proxy.auth.ims_access_token import ImsBearerTokenSource
 from alibabacloud_mcp_proxy.config import TokenSettings
 
 
@@ -81,27 +82,6 @@ class CommandBearerTokenSource:
         return completed
 
 
-class AccessKeyBearerTokenSource:
-    """
-    Placeholder for AK/SK-backed token generation.
-
-    Alibaba Cloud OpenAPI MCP currently documents OAuth-based bearer token flows. This
-    source keeps the project structure ready for an AK/SK bootstrap implementation
-    without pretending that raw AK/SK can be transformed into a valid MCP bearer token.
-    """
-
-    def __init__(self, settings: TokenSettings) -> None:
-        self._settings = settings
-
-    async def fetch_token(self) -> BearerToken:
-        raise TokenAcquisitionError(
-            "AK/SK credentials were provided, but Alibaba Cloud OpenAPI MCP bearer tokens "
-            "require an OAuth-compatible exchange flow instead of direct AK/SK signing. "
-            "Set ALIBABACLOUD_MCP_BEARER_TOKEN or ALIBABACLOUD_MCP_TOKEN_COMMAND until a custom "
-            "AK/SK token exchange implementation is added."
-        )
-
-
 class CachedBearerTokenProvider:
     def __init__(self, source: BearerTokenSource, *, refresh_skew_seconds: int = 60) -> None:
         self._source = source
@@ -124,12 +104,11 @@ def build_token_provider(settings: TokenSettings) -> CachedBearerTokenProvider:
         source: BearerTokenSource = StaticBearerTokenSource(settings.bearer_token)
     elif settings.token_command:
         source = CommandBearerTokenSource(settings.token_command)
-    elif settings.access_key_id and settings.access_key_secret:
-        source = AccessKeyBearerTokenSource(settings)
     else:
-        raise TokenAcquisitionError(
-            "No bearer token source configured. Provide ALIBABACLOUD_MCP_BEARER_TOKEN, "
-            "ALIBABACLOUD_MCP_TOKEN_COMMAND, or Alibaba Cloud credentials."
+        source = ImsBearerTokenSource(
+            client_id=settings.ims_client_id,
+            scope=settings.ims_scope,
+            endpoint=settings.ims_endpoint,
         )
 
     return CachedBearerTokenProvider(source, refresh_skew_seconds=settings.refresh_skew_seconds)
