@@ -8,8 +8,8 @@ import anyio
 from mcp import types
 from pydantic import AnyUrl
 
-from aliyun_mcp_proxy.auth.token_provider import CachedBearerTokenProvider
-from aliyun_mcp_proxy.config import RetrySettings
+from alibabacloud_mcp_proxy.auth.token_provider import CachedBearerTokenProvider
+from alibabacloud_mcp_proxy.config import RetrySettings
 
 LOGGER = logging.getLogger(__name__)
 

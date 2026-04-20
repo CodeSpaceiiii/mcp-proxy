@@ -1,5 +1,5 @@
 [project]
-name = "aliyun-mcp-proxy"
+name = "alibabacloud-mcp-proxy"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
@@ -8,7 +8,7 @@ dependencies = [
 ]
 
 [project.scripts]
-aliyun-mcp-proxy = "aliyun_mcp_proxy.cli:main"
+alibabacloud-mcp-proxy = "alibabacloud_mcp_proxy.cli:main"
 
 [build-system]
 requires = ["hatchling"]

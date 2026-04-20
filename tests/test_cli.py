@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from aliyun_mcp_proxy.cli import parse_config
+from alibabacloud_mcp_proxy.cli import parse_config
 
 
 def test_parse_config_uses_cli_values() -> None:
@@ -21,8 +21,8 @@ def test_parse_config_uses_cli_values() -> None:
 
 
 def test_parse_config_falls_back_to_env(monkeypatch) -> None:
-    monkeypatch.setenv("ALIYUN_MCP_SERVER_URL", "https://env.example/mcp")
-    monkeypatch.setenv("ALIYUN_MCP_REGION", "cn-beijing")
+    monkeypatch.setenv("ALIBABACLOUD_MCP_SERVER_URL", "https://env.example/mcp")
+    monkeypatch.setenv("ALIBABACLOUD_MCP_REGION", "cn-beijing")
 
     config = parse_config([])
 

@@ -59,7 +59,7 @@ class TokenSettings:
 
 
 @dataclass(slots=True, frozen=True)
-class AliyunProxyConfig:
+class AlibabaCloudProxyConfig:
     server_url: str
     region: str | None
     connect_timeout_seconds: float
@@ -74,7 +74,7 @@ class AliyunProxyConfig:
         values: Mapping[str, str | None],
         *,
         defaults: Mapping[str, str | None] | None = None,
-    ) -> "AliyunProxyConfig":
+    ) -> "AlibabaCloudProxyConfig":
         merged: dict[str, str | None] = {}
         if defaults:
             merged.update(defaults)
@@ -85,7 +85,7 @@ class AliyunProxyConfig:
         server_url = (merged.get("server_url") or "").strip()
         if not server_url:
             raise ProxyConfigurationError(
-                "Missing upstream MCP server URL. Set --server-url or ALIYUN_MCP_SERVER_URL."
+                "Missing upstream MCP server URL. Set --server-url or ALIBABACLOUD_MCP_SERVER_URL."
             )
 
         return cls(
@@ -134,24 +134,24 @@ class AliyunProxyConfig:
         )
 
     @classmethod
-    def from_env(cls) -> "AliyunProxyConfig":
+    def from_env(cls) -> "AlibabaCloudProxyConfig":
         return cls.from_mapping(cls.env_values())
 
     @staticmethod
     def env_values() -> dict[str, str | None]:
         return {
-            "server_url": _env("ALIYUN_MCP_SERVER_URL"),
-            "region": _env("ALIYUN_MCP_REGION"),
-            "connect_timeout_seconds": _env("ALIYUN_MCP_CONNECT_TIMEOUT"),
-            "read_timeout_seconds": _env("ALIYUN_MCP_READ_TIMEOUT"),
-            "log_level": _env("ALIYUN_MCP_LOG_LEVEL", "INFO"),
-            "bearer_token": _env("ALIYUN_MCP_BEARER_TOKEN"),
-            "token_command": _env("ALIYUN_MCP_TOKEN_COMMAND"),
+            "server_url": _env("ALIBABACLOUD_MCP_SERVER_URL"),
+            "region": _env("ALIBABACLOUD_MCP_REGION"),
+            "connect_timeout_seconds": _env("ALIBABACLOUD_MCP_CONNECT_TIMEOUT"),
+            "read_timeout_seconds": _env("ALIBABACLOUD_MCP_READ_TIMEOUT"),
+            "log_level": _env("ALIBABACLOUD_MCP_LOG_LEVEL", "INFO"),
+            "bearer_token": _env("ALIBABACLOUD_MCP_BEARER_TOKEN"),
+            "token_command": _env("ALIBABACLOUD_MCP_TOKEN_COMMAND"),
             "access_key_id": _env("ALIBABA_CLOUD_ACCESS_KEY_ID"),
             "access_key_secret": _env("ALIBABA_CLOUD_ACCESS_KEY_SECRET"),
             "security_token": _env("ALIBABA_CLOUD_SECURITY_TOKEN"),
-            "refresh_skew_seconds": _env("ALIYUN_MCP_REFRESH_SKEW_SECONDS"),
-            "max_attempts": _env("ALIYUN_MCP_RETRY_MAX_ATTEMPTS"),
-            "base_delay_seconds": _env("ALIYUN_MCP_RETRY_BASE_SECONDS"),
-            "max_delay_seconds": _env("ALIYUN_MCP_RETRY_MAX_SECONDS"),
+            "refresh_skew_seconds": _env("ALIBABACLOUD_MCP_REFRESH_SKEW_SECONDS"),
+            "max_attempts": _env("ALIBABACLOUD_MCP_RETRY_MAX_ATTEMPTS"),
+            "base_delay_seconds": _env("ALIBABACLOUD_MCP_RETRY_BASE_SECONDS"),
+            "max_delay_seconds": _env("ALIBABACLOUD_MCP_RETRY_MAX_SECONDS"),
         }

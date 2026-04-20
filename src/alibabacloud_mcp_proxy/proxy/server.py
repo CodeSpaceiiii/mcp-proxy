@@ -8,16 +8,16 @@ from mcp.server import Server
 from mcp.server.lowlevel.helper_types import ReadResourceContents
 from pydantic import AnyUrl
 
-from aliyun_mcp_proxy.config import AliyunProxyConfig
-from aliyun_mcp_proxy.session.reconnecting_session import ReconnectingSession
-from aliyun_mcp_proxy.transport.stdio_server import run_stdio_server
+from alibabacloud_mcp_proxy.config import AlibabaCloudProxyConfig
+from alibabacloud_mcp_proxy.session.reconnecting_session import ReconnectingSession
+from alibabacloud_mcp_proxy.transport.stdio_server import run_stdio_server
 
 
-class AliyunMcpProxyServer:
-    def __init__(self, config: AliyunProxyConfig, session: ReconnectingSession) -> None:
+class AlibabaCloudMcpProxyServer:
+    def __init__(self, config: AlibabaCloudProxyConfig, session: ReconnectingSession) -> None:
         self._config = config
         self._session = session
-        self._server = Server("aliyun-mcp-proxy")
+        self._server = Server("alibabacloud-mcp-proxy")
         self._register_handlers()
 
     async def run(self) -> None:

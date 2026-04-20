@@ -4,14 +4,14 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from aliyun_mcp_proxy.auth.token_provider import (
+from alibabacloud_mcp_proxy.auth.token_provider import (
     BearerToken,
     CachedBearerTokenProvider,
     StaticBearerTokenSource,
     TokenAcquisitionError,
     build_token_provider,
 )
-from aliyun_mcp_proxy.config import TokenSettings
+from alibabacloud_mcp_proxy.config import TokenSettings
 
 
 class FakeTokenSource:

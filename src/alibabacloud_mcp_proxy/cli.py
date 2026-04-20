@@ -6,19 +6,19 @@ from collections.abc import Sequence
 
 import anyio
 
-from aliyun_mcp_proxy.auth.token_provider import (
+from alibabacloud_mcp_proxy.auth.token_provider import (
     TokenAcquisitionError,
     build_token_provider,
 )
-from aliyun_mcp_proxy.config import AliyunProxyConfig, ProxyConfigurationError
-from aliyun_mcp_proxy.proxy.server import AliyunMcpProxyServer
-from aliyun_mcp_proxy.session.reconnecting_session import ReconnectingSession
-from aliyun_mcp_proxy.transport.upstream_http import StreamableHttpConnectionFactory
+from alibabacloud_mcp_proxy.config import AlibabaCloudProxyConfig, ProxyConfigurationError
+from alibabacloud_mcp_proxy.proxy.server import AlibabaCloudMcpProxyServer
+from alibabacloud_mcp_proxy.session.reconnecting_session import ReconnectingSession
+from alibabacloud_mcp_proxy.transport.upstream_http import StreamableHttpConnectionFactory
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="aliyun-mcp-proxy",
+        prog="alibabacloud-mcp-proxy",
         description="Local stdio MCP proxy for Alibaba Cloud OpenAPI MCP servers.",
     )
     parser.add_argument("--server-url", help="Upstream Alibaba Cloud MCP streamable HTTP URL.")
@@ -38,7 +38,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--log-level",
         default=None,
-        help="Python logging level. Defaults to ALIYUN_MCP_LOG_LEVEL or INFO.",
+        help="Python logging level. Defaults to ALIBABACLOUD_MCP_LOG_LEVEL or INFO.",
     )
     parser.add_argument(
         "--bearer-token",
@@ -71,7 +71,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def parse_config(argv: Sequence[str] | None = None) -> AliyunProxyConfig:
+def parse_config(argv: Sequence[str] | None = None) -> AlibabaCloudProxyConfig:
     args = build_parser().parse_args(argv)
     values = {
         "server_url": args.server_url,
@@ -85,17 +85,17 @@ def parse_config(argv: Sequence[str] | None = None) -> AliyunProxyConfig:
         "base_delay_seconds": _stringify(args.base_delay_seconds),
         "max_delay_seconds": _stringify(args.max_delay_seconds),
     }
-    return AliyunProxyConfig.from_mapping(
+    return AlibabaCloudProxyConfig.from_mapping(
         values,
-        defaults=AliyunProxyConfig.env_values(),
+        defaults=AlibabaCloudProxyConfig.env_values(),
     )
 
 
-async def run_proxy(config: AliyunProxyConfig) -> None:
+async def run_proxy(config: AlibabaCloudProxyConfig) -> None:
     token_provider = build_token_provider(config.token)
     connection_factory = StreamableHttpConnectionFactory(config)
     session = ReconnectingSession(connection_factory, token_provider, config.retry)
-    proxy = AliyunMcpProxyServer(config, session)
+    proxy = AlibabaCloudMcpProxyServer(config, session)
 
     try:
         await proxy.run()

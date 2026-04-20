@@ -8,7 +8,7 @@ from typing import Protocol
 
 import anyio
 
-from aliyun_mcp_proxy.config import TokenSettings
+from alibabacloud_mcp_proxy.config import TokenSettings
 
 
 class TokenAcquisitionError(RuntimeError):
@@ -97,7 +97,7 @@ class AccessKeyBearerTokenSource:
         raise TokenAcquisitionError(
             "AK/SK credentials were provided, but Alibaba Cloud OpenAPI MCP bearer tokens "
             "require an OAuth-compatible exchange flow instead of direct AK/SK signing. "
-            "Set ALIYUN_MCP_BEARER_TOKEN or ALIYUN_MCP_TOKEN_COMMAND until a custom "
+            "Set ALIBABACLOUD_MCP_BEARER_TOKEN or ALIBABACLOUD_MCP_TOKEN_COMMAND until a custom "
             "AK/SK token exchange implementation is added."
         )
 
@@ -128,8 +128,8 @@ def build_token_provider(settings: TokenSettings) -> CachedBearerTokenProvider:
         source = AccessKeyBearerTokenSource(settings)
     else:
         raise TokenAcquisitionError(
-            "No bearer token source configured. Provide ALIYUN_MCP_BEARER_TOKEN, "
-            "ALIYUN_MCP_TOKEN_COMMAND, or Alibaba Cloud credentials."
+            "No bearer token source configured. Provide ALIBABACLOUD_MCP_BEARER_TOKEN, "
+            "ALIBABACLOUD_MCP_TOKEN_COMMAND, or Alibaba Cloud credentials."
         )
 
     return CachedBearerTokenProvider(source, refresh_skew_seconds=settings.refresh_skew_seconds)

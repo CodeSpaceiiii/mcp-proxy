@@ -9,7 +9,7 @@ from mcp import ClientSession, types
 from mcp.client.streamable_http import streamable_http_client
 from pydantic import AnyUrl
 
-from aliyun_mcp_proxy.config import AliyunProxyConfig
+from alibabacloud_mcp_proxy.config import AlibabaCloudProxyConfig
 
 
 @dataclass(slots=True)
@@ -44,13 +44,13 @@ class StreamableHttpConnection:
 
 
 class StreamableHttpConnectionFactory:
-    def __init__(self, config: AliyunProxyConfig) -> None:
+    def __init__(self, config: AlibabaCloudProxyConfig) -> None:
         self._config = config
 
     async def connect(self, *, bearer_token: str) -> StreamableHttpConnection:
         headers = {
             "authorization": f"Bearer {bearer_token}",
-            "user-agent": "aliyun-mcp-proxy/0.1.0",
+            "user-agent": "alibabacloud-mcp-proxy/0.1.0",
         }
         if self._config.region:
             headers["x-mcp-region-id"] = self._config.region
