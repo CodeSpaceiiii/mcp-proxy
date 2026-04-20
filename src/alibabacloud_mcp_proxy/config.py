@@ -12,7 +12,6 @@ from alibabacloud_mcp_proxy.auth.ims_access_token import (
 
 # Built-in upstream for Alibaba Cloud OpenAPI MCP (streamable HTTP), Hangzhou.
 DEFAULT_MCP_SERVER_URL = "https://openapi-mcp.cn-hangzhou.aliyuncs.com/mcp"
-DEFAULT_MCP_REGION = "cn-hangzhou"
 
 
 class ProxyConfigurationError(ValueError):
@@ -71,7 +70,6 @@ class TokenSettings:
 @dataclass(slots=True, frozen=True)
 class AlibabaCloudProxyConfig:
     server_url: str
-    region: str
     connect_timeout_seconds: float
     read_timeout_seconds: float
     log_level: str
@@ -93,11 +91,9 @@ class AlibabaCloudProxyConfig:
                 merged[key] = value
 
         server_url = (merged.get("server_url") or "").strip() or DEFAULT_MCP_SERVER_URL
-        region = (merged.get("region") or "").strip() or DEFAULT_MCP_REGION
 
         return cls(
             server_url=server_url,
-            region=region,
             connect_timeout_seconds=_parse_float(
                 merged.get("connect_timeout_seconds"),
                 default=10.0,
@@ -148,7 +144,6 @@ class AlibabaCloudProxyConfig:
     def env_values() -> dict[str, str | None]:
         return {
             "server_url": _env("ALIBABACLOUD_MCP_SERVER_URL"),
-            "region": _env("ALIBABACLOUD_MCP_REGION"),
             "connect_timeout_seconds": _env("ALIBABACLOUD_MCP_CONNECT_TIMEOUT"),
             "read_timeout_seconds": _env("ALIBABACLOUD_MCP_READ_TIMEOUT"),
             "log_level": _env("ALIBABACLOUD_MCP_LOG_LEVEL", "ERROR"),

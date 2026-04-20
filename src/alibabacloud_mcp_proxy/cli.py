@@ -68,7 +68,6 @@ def build_parser() -> argparse.ArgumentParser:
         description="Local stdio MCP proxy for Alibaba Cloud OpenAPI MCP servers.",
     )
     parser.add_argument("--server-url", help="Upstream Alibaba Cloud MCP streamable HTTP URL.")
-    parser.add_argument("--region", help="Default region injected as x_mcp_region_id.")
     parser.add_argument(
         "--connect-timeout",
         type=float,
@@ -138,7 +137,6 @@ def parse_config(argv: Sequence[str] | None = None) -> AlibabaCloudProxyConfig:
     args = build_parser().parse_args(argv)
     values = {
         "server_url": args.server_url,
-        "region": args.region,
         "connect_timeout_seconds": _stringify(args.connect_timeout_seconds),
         "read_timeout_seconds": _stringify(args.read_timeout_seconds),
         "log_level": args.log_level,
@@ -197,10 +195,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     # MCP uses stdout for JSON-RPC; logs go to stderr and to log_path.
     _LOGGER.info(
         "stdio MCP server starting — protocol traffic is on stdout; logs on stderr and in %s. "
-        "Upstream: %s (region=%s). Process will wait until an MCP client connects.",
+        "Upstream: %s. Process will wait until an MCP client connects.",
         log_path,
         config.server_url,
-        config.region,
     )
 
     try:

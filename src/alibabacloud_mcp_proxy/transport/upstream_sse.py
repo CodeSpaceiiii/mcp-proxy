@@ -184,13 +184,10 @@ class SseConnectionFactory:
         self._task_group = task_group
 
     def _build_headers(self, bearer_token: str) -> dict[str, str]:
-        headers = {
+        return {
             "authorization": f"Bearer {bearer_token}",
             "user-agent": "alibabacloud-mcp-proxy/0.1.0",
         }
-        if self._config.region:
-            headers["x-mcp-region-id"] = self._config.region
-        return headers
 
     async def connect(self, *, bearer_token: str) -> SseConnection:
         """Create a new SSE connection running in a background task.

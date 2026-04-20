@@ -75,10 +75,4 @@ class AlibabaCloudMcpProxyServer:
     async def _handle_call_tool(
         self, name: str, arguments: dict[str, Any] | None
     ) -> types.CallToolResult:
-        return await self._session.call_tool(name, self._inject_region(arguments))
-
-    def _inject_region(self, arguments: dict[str, Any] | None) -> dict[str, Any]:
-        payload = dict(arguments or {})
-        if self._config.region and "x_mcp_region_id" not in payload:
-            payload["x_mcp_region_id"] = self._config.region
-        return payload
+        return await self._session.call_tool(name, arguments)

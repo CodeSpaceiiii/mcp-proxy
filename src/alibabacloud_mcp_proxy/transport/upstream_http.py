@@ -36,13 +36,10 @@ class StreamableHttpConnection:
     bearer_token: str
 
     def _build_headers(self) -> dict[str, str]:
-        headers = {
+        return {
             "authorization": f"Bearer {self.bearer_token}",
             "user-agent": "alibabacloud-mcp-proxy/0.1.0",
         }
-        if self.config.region:
-            headers["x-mcp-region-id"] = self.config.region
-        return headers
 
     def _build_timeout(self) -> httpx.Timeout:
         return httpx.Timeout(

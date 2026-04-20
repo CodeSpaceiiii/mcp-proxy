@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from alibabacloud_mcp_proxy.cli import default_log_file_path, main, parse_config
-from alibabacloud_mcp_proxy.config import DEFAULT_MCP_REGION, DEFAULT_MCP_SERVER_URL
+from alibabacloud_mcp_proxy.config import DEFAULT_MCP_SERVER_URL
 from alibabacloud_mcp_proxy.auth.token_provider import TokenAcquisitionError
 
 
@@ -18,12 +18,10 @@ def test_parse_config_uses_builtin_defaults_when_no_env(
     monkeypatch,
 ) -> None:
     monkeypatch.delenv("ALIBABACLOUD_MCP_SERVER_URL", raising=False)
-    monkeypatch.delenv("ALIBABACLOUD_MCP_REGION", raising=False)
 
     config = parse_config([])
 
     assert config.server_url == DEFAULT_MCP_SERVER_URL
-    assert config.region == DEFAULT_MCP_REGION
 
 
 def test_parse_config_uses_cli_values() -> None:
@@ -31,26 +29,21 @@ def test_parse_config_uses_cli_values() -> None:
         [
             "--server-url",
             "https://example.com/mcp",
-            "--region",
-            "cn-hangzhou",
             "--retry-max-attempts",
             "5",
         ]
     )
 
     assert config.server_url == "https://example.com/mcp"
-    assert config.region == "cn-hangzhou"
     assert config.retry.max_attempts == 5
 
 
 def test_parse_config_falls_back_to_env(monkeypatch) -> None:
     monkeypatch.setenv("ALIBABACLOUD_MCP_SERVER_URL", "https://env.example/mcp")
-    monkeypatch.setenv("ALIBABACLOUD_MCP_REGION", "cn-beijing")
 
     config = parse_config([])
 
     assert config.server_url == "https://env.example/mcp"
-    assert config.region == "cn-beijing"
 
 
 def test_parse_config_ims_client_and_scope_from_env(monkeypatch) -> None:
