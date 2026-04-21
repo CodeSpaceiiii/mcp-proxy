@@ -190,23 +190,18 @@ async def run_proxy(config: AlibabaCloudProxyConfig) -> None:
 
     if _is_sse_endpoint(server_url):
         connection_factory = SseConnectionFactory(config, server_url)
-        async with anyio.create_task_group() as background_tasks:
-            connection_factory.set_task_group(background_tasks)
-            session = ReconnectingSession(connection_factory, token_provider, config.retry)
-            proxy = AlibabaCloudMcpProxyServer(config, session)
-            try:
-                await proxy.run()
-            finally:
-                await proxy.aclose()
-                background_tasks.cancel_scope.cancel()
     else:
         connection_factory = StreamableHttpConnectionFactory(config, server_url)
+
+    async with anyio.create_task_group() as background_tasks:
+        connection_factory.set_task_group(background_tasks)
         session = ReconnectingSession(connection_factory, token_provider, config.retry)
         proxy = AlibabaCloudMcpProxyServer(config, session)
         try:
             await proxy.run()
         finally:
             await proxy.aclose()
+            background_tasks.cancel_scope.cancel()
 
 
 def main(argv: Sequence[str] | None = None) -> int:
