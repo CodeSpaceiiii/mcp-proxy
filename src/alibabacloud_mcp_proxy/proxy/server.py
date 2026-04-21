@@ -1,16 +1,21 @@
 from __future__ import annotations
 
 import base64
+import logging
 from typing import Any
 
 from mcp import types
 from mcp.server import Server
 from mcp.server.lowlevel.helper_types import ReadResourceContents
+from mcp.shared.exceptions import McpError
+from mcp.types import ErrorData, INTERNAL_ERROR
 from pydantic import AnyUrl
 
 from alibabacloud_mcp_proxy.config import AlibabaCloudProxyConfig
 from alibabacloud_mcp_proxy.session.reconnecting_session import ReconnectingSession
 from alibabacloud_mcp_proxy.transport.stdio_server import run_stdio_server
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class AlibabaCloudMcpProxyServer:
@@ -35,20 +40,45 @@ class AlibabaCloudMcpProxyServer:
         self._server.call_tool()(self._handle_call_tool)
 
     async def _handle_list_prompts(self) -> types.ListPromptsResult:
-        return await self._session.list_prompts()
+        try:
+            return await self._session.list_prompts()
+        except McpError:
+            raise
+        except Exception as exc:
+            _LOGGER.error("Upstream prompts/list failed: %s", exc, exc_info=True)
+            raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(exc))) from exc
 
     async def _handle_get_prompt(
         self,
         name: str,
         arguments: dict[str, str] | None,
     ) -> types.GetPromptResult:
-        return await self._session.get_prompt(name, arguments)
+        try:
+            return await self._session.get_prompt(name, arguments)
+        except McpError:
+            raise
+        except Exception as exc:
+            _LOGGER.error("Upstream prompts/get:%s failed: %s", name, exc, exc_info=True)
+            raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(exc))) from exc
 
     async def _handle_list_resources(self) -> types.ListResourcesResult:
-        return await self._session.list_resources()
+        try:
+            return await self._session.list_resources()
+        except McpError:
+            raise
+        except Exception as exc:
+            _LOGGER.error("Upstream resources/list failed: %s", exc, exc_info=True)
+            raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(exc))) from exc
 
     async def _handle_read_resource(self, uri: AnyUrl) -> list[ReadResourceContents]:
-        result = await self._session.read_resource(uri)
+        try:
+            result = await self._session.read_resource(uri)
+        except McpError:
+            raise
+        except Exception as exc:
+            _LOGGER.error("Upstream resources/read:%s failed: %s", uri, exc, exc_info=True)
+            raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(exc))) from exc
+
         contents: list[ReadResourceContents] = []
         for item in result.contents:
             if hasattr(item, "text"):
@@ -70,9 +100,21 @@ class AlibabaCloudMcpProxyServer:
         return contents
 
     async def _handle_list_tools(self) -> types.ListToolsResult:
-        return await self._session.list_tools()
+        try:
+            return await self._session.list_tools()
+        except McpError:
+            raise
+        except Exception as exc:
+            _LOGGER.error("Upstream tools/list failed: %s", exc, exc_info=True)
+            raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(exc))) from exc
 
     async def _handle_call_tool(
         self, name: str, arguments: dict[str, Any] | None
     ) -> types.CallToolResult:
-        return await self._session.call_tool(name, arguments)
+        try:
+            return await self._session.call_tool(name, arguments)
+        except McpError:
+            raise
+        except Exception as exc:
+            _LOGGER.error("Upstream tools/call:%s failed: %s", name, exc, exc_info=True)
+            raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(exc))) from exc

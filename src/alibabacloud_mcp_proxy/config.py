@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from os import environ
 from typing import Mapping
 
@@ -10,8 +11,20 @@ from alibabacloud_mcp_proxy.auth.ims_access_token import (
     DEFAULT_IMS_SCOPE,
 )
 
-# Built-in upstream for Alibaba Cloud OpenAPI MCP (streamable HTTP), Hangzhou.
-DEFAULT_MCP_SERVER_URL = "https://openapi-mcp.cn-hangzhou.aliyuncs.com/mcp"
+
+class SiteType(Enum):
+    """Alibaba Cloud site type."""
+    CN = "CN"
+    INTL = "INTL"
+
+
+# Default IMS client IDs per site type.
+DEFAULT_IMS_CLIENT_ID_CN = DEFAULT_IMS_CLIENT_ID  # "4071151845732613353"
+DEFAULT_IMS_CLIENT_ID_INTL = "4195410055503316452"
+
+# OpenAPI MCP discovery endpoints per site type.
+DISCOVERY_ENDPOINT_CN = "openapi-mcp.cn-hangzhou.aliyuncs.com"
+DISCOVERY_ENDPOINT_INTL = "openapi-mcp.ap-southeast-1.aliyuncs.com"
 
 
 class ProxyConfigurationError(ValueError):
@@ -69,10 +82,12 @@ class TokenSettings:
 
 @dataclass(slots=True, frozen=True)
 class AlibabaCloudProxyConfig:
-    server_url: str
+    site_type: SiteType
+    server_url: str | None
     connect_timeout_seconds: float
     read_timeout_seconds: float
-    log_level: str
+    debug: bool
+    log_file: str | None
     token: TokenSettings
     retry: RetrySettings
 
@@ -90,9 +105,26 @@ class AlibabaCloudProxyConfig:
             if value is not None:
                 merged[key] = value
 
-        server_url = (merged.get("server_url") or "").strip() or DEFAULT_MCP_SERVER_URL
+        raw_site_type = (merged.get("site_type") or "").strip().upper() or "CN"
+        try:
+            site_type = SiteType(raw_site_type)
+        except ValueError:
+            raise ProxyConfigurationError(
+                f"Invalid site type '{raw_site_type}'. Must be one of: CN, INTL."
+            )
+
+        server_url = (merged.get("server_url") or "").strip() or None
+
+        # Choose default IMS client ID based on site type when not explicitly set.
+        default_client_id = (
+            DEFAULT_IMS_CLIENT_ID_INTL if site_type is SiteType.INTL else DEFAULT_IMS_CLIENT_ID_CN
+        )
+
+        debug = (merged.get("debug") or "").strip().lower() in ("true", "1", "yes")
+        log_file = (merged.get("log_file") or "").strip() or None
 
         return cls(
+            site_type=site_type,
             server_url=server_url,
             connect_timeout_seconds=_parse_float(
                 merged.get("connect_timeout_seconds"),
@@ -104,11 +136,12 @@ class AlibabaCloudProxyConfig:
                 default=120.0,
                 field_name="read timeout",
             ),
-            log_level=(merged.get("log_level") or "ERROR").upper(),
+            debug=debug,
+            log_file=log_file,
             token=TokenSettings(
                 bearer_token=(merged.get("bearer_token") or "").strip() or None,
                 token_command=(merged.get("token_command") or "").strip() or None,
-                ims_client_id=(merged.get("ims_client_id") or "").strip() or DEFAULT_IMS_CLIENT_ID,
+                ims_client_id=(merged.get("ims_client_id") or "").strip() or default_client_id,
                 ims_scope=(merged.get("ims_scope") or "").strip() or DEFAULT_IMS_SCOPE,
                 ims_endpoint=(merged.get("ims_endpoint") or "").strip() or DEFAULT_IMS_ENDPOINT,
                 refresh_skew_seconds=_parse_int(
@@ -143,10 +176,12 @@ class AlibabaCloudProxyConfig:
     @staticmethod
     def env_values() -> dict[str, str | None]:
         return {
+            "site_type": _env("ALIBABACLOUD_MCP_SITE_TYPE"),
             "server_url": _env("ALIBABACLOUD_MCP_SERVER_URL"),
             "connect_timeout_seconds": _env("ALIBABACLOUD_MCP_CONNECT_TIMEOUT"),
             "read_timeout_seconds": _env("ALIBABACLOUD_MCP_READ_TIMEOUT"),
-            "log_level": _env("ALIBABACLOUD_MCP_LOG_LEVEL", "ERROR"),
+            "debug": _env("ALIBABACLOUD_MCP_DEBUG"),
+            "log_file": _env("ALIBABACLOUD_MCP_LOG_FILE"),
             "bearer_token": _env("ALIBABACLOUD_MCP_BEARER_TOKEN"),
             "token_command": _env("ALIBABACLOUD_MCP_TOKEN_COMMAND"),
             "ims_client_id": _env("ALIBABACLOUD_MCP_CLIENT_ID"),

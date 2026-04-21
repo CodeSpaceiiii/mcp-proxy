@@ -111,6 +111,7 @@ class SseConnection:
 
 
 async def _sse_background_worker(
+    server_url: str,
     config: AlibabaCloudProxyConfig,
     headers: dict[str, str],
     request_receiver: anyio.abc.ObjectReceiveStream[_RpcRequest | None],
@@ -130,7 +131,7 @@ async def _sse_background_worker(
     """
     try:
         async with sse_client(
-            config.server_url,
+            server_url,
             headers=headers,
             timeout=config.connect_timeout_seconds,
             sse_read_timeout=config.read_timeout_seconds,
@@ -175,8 +176,9 @@ class SseConnectionFactory:
     scope lives in a dedicated child task, not in the caller's task.
     """
 
-    def __init__(self, config: AlibabaCloudProxyConfig) -> None:
+    def __init__(self, config: AlibabaCloudProxyConfig, server_url: str) -> None:
         self._config = config
+        self._server_url = server_url
         self._task_group: TaskGroup | None = None
 
     def set_task_group(self, task_group: TaskGroup) -> None:
@@ -214,6 +216,7 @@ class SseConnectionFactory:
         # cancel scope is confined to the child task.
         self._task_group.start_soon(
             _sse_background_worker,
+            self._server_url,
             self._config,
             headers,
             request_receiver,

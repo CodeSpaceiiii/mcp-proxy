@@ -33,6 +33,7 @@ class StreamableHttpConnection:
     """
 
     config: AlibabaCloudProxyConfig
+    server_url: str
     bearer_token: str
 
     def _build_headers(self) -> dict[str, str]:
@@ -62,7 +63,7 @@ class StreamableHttpConnection:
             )
             streams = await exit_stack.enter_async_context(
                 streamable_http_client(
-                    self.config.server_url,
+                    self.server_url,
                     http_client=client,
                     terminate_on_close=False,
                 )
@@ -116,11 +117,13 @@ class StreamableHttpConnection:
 
 
 class StreamableHttpConnectionFactory:
-    def __init__(self, config: AlibabaCloudProxyConfig) -> None:
+    def __init__(self, config: AlibabaCloudProxyConfig, server_url: str) -> None:
         self._config = config
+        self._server_url = server_url
 
     async def connect(self, *, bearer_token: str) -> StreamableHttpConnection:
         return StreamableHttpConnection(
             config=self._config,
+            server_url=self._server_url,
             bearer_token=bearer_token,
         )

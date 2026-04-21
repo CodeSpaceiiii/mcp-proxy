@@ -1,27 +1,26 @@
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-from alibabacloud_mcp_proxy.cli import default_log_file_path, main, parse_config
-from alibabacloud_mcp_proxy.config import DEFAULT_MCP_SERVER_URL
+from alibabacloud_mcp_proxy.cli import main, parse_config
+from alibabacloud_mcp_proxy.config import SiteType
 from alibabacloud_mcp_proxy.auth.token_provider import TokenAcquisitionError
-
-
-def test_default_log_file_path_under_tmp() -> None:
-    assert default_log_file_path() == Path("/tmp/alibabacloud-mcp-proxy.log")
 
 
 def test_parse_config_uses_builtin_defaults_when_no_env(
     monkeypatch,
 ) -> None:
     monkeypatch.delenv("ALIBABACLOUD_MCP_SERVER_URL", raising=False)
+    monkeypatch.delenv("ALIBABACLOUD_MCP_SITE_TYPE", raising=False)
 
     config = parse_config([])
 
-    assert config.server_url == DEFAULT_MCP_SERVER_URL
+    assert config.server_url is None
+    assert config.site_type is SiteType.CN
+    assert config.debug is False
+    assert config.log_file is None
 
 
 def test_parse_config_uses_cli_values() -> None:
@@ -44,6 +43,20 @@ def test_parse_config_falls_back_to_env(monkeypatch) -> None:
     config = parse_config([])
 
     assert config.server_url == "https://env.example/mcp"
+
+
+def test_parse_config_site_type_intl() -> None:
+    config = parse_config(["--site-type", "INTL"])
+
+    assert config.site_type is SiteType.INTL
+    assert config.token.ims_client_id == "4195410055503316452"
+
+
+def test_parse_config_site_type_cn_default_client_id() -> None:
+    config = parse_config(["--site-type", "CN"])
+
+    assert config.site_type is SiteType.CN
+    assert config.token.ims_client_id == "4071151845732613353"
 
 
 def test_parse_config_ims_client_and_scope_from_env(monkeypatch) -> None:
@@ -76,15 +89,34 @@ def test_parse_config_cli_overrides_ims_defaults() -> None:
     assert config.token.ims_endpoint == "ims.cn-hangzhou.aliyuncs.com"
 
 
-def test_main_logs_runtime_token_error(tmp_path, monkeypatch) -> None:
+def test_parse_config_debug_flag() -> None:
+    config = parse_config(["--debug", "--log-file", "/tmp/test.log"])
+
+    assert config.debug is True
+    assert config.log_file == "/tmp/test.log"
+
+
+def test_main_debug_without_log_file_exits() -> None:
+    with pytest.raises(SystemExit):
+        main(["--debug"])
+
+
+def test_main_runtime_token_error_with_debug(tmp_path) -> None:
     log_path = tmp_path / "proxy.log"
-    monkeypatch.setattr("alibabacloud_mcp_proxy.cli.default_log_file_path", lambda: log_path)
 
     with (
         patch("alibabacloud_mcp_proxy.cli.anyio.run", side_effect=TokenAcquisitionError("boom")),
         pytest.raises(SystemExit, match="boom"),
     ):
-        main([])
+        main(["--debug", "--log-file", str(log_path)])
 
     assert log_path.exists()
     assert "Proxy terminated with configuration/token error: boom" in log_path.read_text()
+
+
+def test_main_runtime_token_error_without_debug() -> None:
+    with (
+        patch("alibabacloud_mcp_proxy.cli.anyio.run", side_effect=TokenAcquisitionError("boom")),
+        pytest.raises(SystemExit, match="boom"),
+    ):
+        main([])
