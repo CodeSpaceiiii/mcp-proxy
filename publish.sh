@@ -60,7 +60,8 @@ python3 -m pip install --quiet --upgrade build twine
 # Step 2: Clean previous builds
 # ---------------------------------------------------------------------------
 echo "==> Cleaning previous builds..."
-rm -rf dist/ build/ src/*.egg-info
+rm -rf dist/ build/
+find src/ -name '*.egg-info' -type d -exec rm -rf {} + 2>/dev/null || true
 
 # ---------------------------------------------------------------------------
 # Step 3: Build

@@ -32,13 +32,13 @@ The RAM user or role running the proxy **must** have the following permissions. 
 Run the proxy with `uvx` (always fetches the latest version, no install needed):
 
 ```bash
-uvx lazy.alibabacloud-mcp-proxy
+uvx lazy.alibabacloud-mcp-proxy@latest
 ```
 
 If you have a custom MCP server URL, you can specify it explicitly:
 
 ```bash
-uvx lazy.alibabacloud-mcp-proxy --server-url <YOUR_MCP_SERVER_URL>
+uvx lazy.alibabacloud-mcp-proxy@latest --server-url <YOUR_MCP_SERVER_URL>
 ```
 
 #### MCP Client Configuration (Claude Desktop / Cursor)
@@ -50,10 +50,18 @@ Add the following to your MCP client configuration file (e.g. `claude_desktop_co
   "mcpServers": {
     "alibabacloud": {
       "command": "uvx",
-      "args": ["lazy.alibabacloud-mcp-proxy"]
+      "args": ["lazy.alibabacloud-mcp-proxy@latest"]
     }
   }
 }
+```
+
+### Debugging
+
+To enable debug logging, use `--debug` together with `--log-file` to write detailed logs to a file:
+
+```bash
+uvx lazy.alibabacloud-mcp-proxy@latest --debug --log-file=/tmp/a.log --safety-policy "ecs:describe-*=allow,*=deny"
 ```
 
 ### Safety Policy
@@ -63,7 +71,7 @@ You can constrain which MCP tools the proxy is allowed to invoke by specifying a
 #### Example: Allow only ECS describe operations
 
 ```bash
-uvx lazy.alibabacloud-mcp-proxy --safety-policy "ecs:describe-*=allow,*=deny"
+uvx lazy.alibabacloud-mcp-proxy@latest --safety-policy "ecs:describe-*=allow,*=deny"
 ```
 
 #### MCP Client Configuration with Safety Policy
@@ -74,7 +82,7 @@ uvx lazy.alibabacloud-mcp-proxy --safety-policy "ecs:describe-*=allow,*=deny"
     "alibabacloud": {
       "command": "uvx",
       "args": [
-        "lazy.alibabacloud-mcp-proxy",
+        "lazy.alibabacloud-mcp-proxy@latest",
         "--safety-policy", "ecs:describe-*=allow,*=deny"
       ]
     }
@@ -86,7 +94,7 @@ You can also set the safety policy via environment variable:
 
 ```bash
 export ALIBABACLOUD_MCP_SAFETY_POLICY="ecs:describe-*=allow,*=deny"
-uvx lazy.alibabacloud-mcp-proxy
+uvx lazy.alibabacloud-mcp-proxy@latest
 ```
 
 ### Pre-check
@@ -94,19 +102,19 @@ uvx lazy.alibabacloud-mcp-proxy
 Before connecting to the upstream MCP server, you can verify that your local OAuth application is properly installed and authorized by running the **pre-check** command. This starts a lightweight local HTTP server, opens your browser to the Alibaba Cloud OAuth authorization page, and waits for the callback.
 
 ```bash
-uvx lazy.alibabacloud-mcp-proxy pre-check
+uvx lazy.alibabacloud-mcp-proxy@latest pre-check
 ```
 
 For international sites:
 
 ```bash
-uvx lazy.alibabacloud-mcp-proxy pre-check --site-type INTL
+uvx lazy.alibabacloud-mcp-proxy@latest pre-check --site-type INTL
 ```
 
 With a custom OAuth client ID:
 
 ```bash
-uvx lazy.alibabacloud-mcp-proxy pre-check --client-id YOUR_OAUTH_CLIENT_ID
+uvx lazy.alibabacloud-mcp-proxy@latest pre-check --client-id YOUR_OAUTH_CLIENT_ID
 ```
 
 If the pre-check passes, you will see:
