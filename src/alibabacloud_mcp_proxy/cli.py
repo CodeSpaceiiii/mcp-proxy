@@ -127,6 +127,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="IMS API endpoint hostname. Default ims.aliyuncs.com or ALIBABACLOUD_MCP_IMS_ENDPOINT.",
     )
     parser.add_argument(
+        "--safety-policy",
+        dest="safety_policy",
+        help="Safety policy expression to constrain allowed MCP tool calls "
+        "(e.g. 'ecs:describe-*=allow,*=deny'). "
+        "Also settable via ALIBABACLOUD_MCP_SAFETY_POLICY.",
+    )
+    parser.add_argument(
         "--retry-max-attempts",
         dest="max_attempts",
         type=int,
@@ -158,6 +165,7 @@ def parse_config(argv: Sequence[str] | None = None) -> AlibabaCloudProxyConfig:
         "log_file": args.log_file,
         "bearer_token": args.bearer_token,
         "token_command": args.token_command,
+        "safety_policy": args.safety_policy,
         "ims_client_id": args.ims_client_id,
         "ims_scope": args.ims_scope,
         "ims_endpoint": args.ims_endpoint,
@@ -195,7 +203,12 @@ async def run_proxy(config: AlibabaCloudProxyConfig) -> None:
 
     async with anyio.create_task_group() as background_tasks:
         connection_factory.set_task_group(background_tasks)
-        session = ReconnectingSession(connection_factory, token_provider, config.retry)
+        session = ReconnectingSession(
+            connection_factory,
+            token_provider,
+            config.retry,
+            safety_policy=config.token.safety_policy,
+        )
         proxy = AlibabaCloudMcpProxyServer(config, session)
         try:
             await proxy.run()

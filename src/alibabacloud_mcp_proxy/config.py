@@ -78,6 +78,7 @@ class TokenSettings:
     ims_scope: str
     ims_endpoint: str
     refresh_skew_seconds: int = 60
+    safety_policy: str | None = None
 
 
 @dataclass(slots=True, frozen=True)
@@ -149,6 +150,7 @@ class AlibabaCloudProxyConfig:
                     default=60,
                     field_name="refresh skew",
                 ),
+                safety_policy=(merged.get("safety_policy") or "").strip() or None,
             ),
             retry=RetrySettings(
                 max_attempts=_parse_int(
@@ -188,6 +190,7 @@ class AlibabaCloudProxyConfig:
             "ims_scope": _env("ALIBABACLOUD_MCP_SCOPE"),
             "ims_endpoint": _env("ALIBABACLOUD_MCP_IMS_ENDPOINT"),
             "refresh_skew_seconds": _env("ALIBABACLOUD_MCP_REFRESH_SKEW_SECONDS"),
+            "safety_policy": _env("ALIBABACLOUD_MCP_SAFETY_POLICY"),
             "max_attempts": _env("ALIBABACLOUD_MCP_RETRY_MAX_ATTEMPTS"),
             "base_delay_seconds": _env("ALIBABACLOUD_MCP_RETRY_BASE_SECONDS"),
             "max_delay_seconds": _env("ALIBABACLOUD_MCP_RETRY_MAX_SECONDS"),

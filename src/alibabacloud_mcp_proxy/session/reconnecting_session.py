@@ -10,6 +10,7 @@ from pydantic import AnyUrl
 
 from alibabacloud_mcp_proxy.auth.token_provider import CachedBearerTokenProvider
 from alibabacloud_mcp_proxy.config import RetrySettings
+from alibabacloud_mcp_proxy.safety_policy import apply_safety_policy
 
 LOGGER = logging.getLogger(__name__)
 
@@ -64,11 +65,15 @@ class ReconnectingSession:
         connection_factory: UpstreamConnectionFactory,
         token_provider: CachedBearerTokenProvider,
         retry_settings: RetrySettings,
+        *,
+        safety_policy: str | None = None,
     ) -> None:
         self._connection_factory = connection_factory
         self._token_provider = token_provider
         self._retry_settings = retry_settings
+        self._safety_policy = safety_policy
         self._connection: UpstreamConnection | None = None
+        self._policy_applied_for_token: str | None = None
         self._lock = anyio.Lock()
 
     async def list_tools(self) -> types.ListToolsResult:
@@ -161,8 +166,31 @@ class ReconnectingSession:
 
     async def _ensure_connection_locked(self, bearer_token: str) -> UpstreamConnection:
         if self._connection is None:
+            await self._apply_safety_policy_if_needed(bearer_token)
             self._connection = await self._connection_factory.connect(bearer_token=bearer_token)
         return self._connection
+
+    async def _apply_safety_policy_if_needed(self, bearer_token: str) -> None:
+        """Apply the safety policy to the bearer token before connecting.
+
+        The policy is re-applied whenever the token changes (e.g. after a
+        refresh) or when connecting for the first time.
+        """
+        if not self._safety_policy:
+            return
+
+        if self._policy_applied_for_token == bearer_token:
+            LOGGER.debug("Safety policy already applied for current token, skipping.")
+            return
+
+        LOGGER.debug("Setting safety policy before upstream connection...")
+        try:
+            await apply_safety_policy(bearer_token, self._safety_policy)
+            self._policy_applied_for_token = bearer_token
+            LOGGER.debug("Safety policy set successfully.")
+        except Exception as exc:
+            LOGGER.warning("Failed to apply safety policy: %s", exc)
+            raise
 
     async def _close_locked(self) -> None:
         if self._connection is not None:
