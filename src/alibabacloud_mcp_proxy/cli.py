@@ -13,8 +13,9 @@ from alibabacloud_mcp_proxy.auth.token_provider import (
     TokenAcquisitionError,
     build_token_provider,
 )
-from alibabacloud_mcp_proxy.config import AlibabaCloudProxyConfig, ProxyConfigurationError
+from alibabacloud_mcp_proxy.config import AlibabaCloudProxyConfig, ProxyConfigurationError, SiteType
 from alibabacloud_mcp_proxy.discovery import discover_mcp_server_url
+from alibabacloud_mcp_proxy.precheck import run_precheck
 from alibabacloud_mcp_proxy.proxy.server import AlibabaCloudMcpProxyServer
 from alibabacloud_mcp_proxy.session.reconnecting_session import ReconnectingSession
 from alibabacloud_mcp_proxy.transport.upstream_http import StreamableHttpConnectionFactory
@@ -62,11 +63,8 @@ def _configure_logging(*, debug: bool, log_file: str | None) -> Path | None:
 
     return log_path
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="alibabacloud-mcp-proxy",
-        description="Local stdio MCP proxy for Alibaba Cloud OpenAPI MCP servers.",
-    )
+def _add_proxy_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add all proxy-related CLI arguments to *parser*."""
     parser.add_argument("--server-url", help="Upstream Alibaba Cloud MCP streamable HTTP URL.")
     parser.add_argument(
         "--site-type",
@@ -151,11 +149,61 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         help="Maximum retry delay in seconds.",
     )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="alibabacloud-mcp-proxy",
+        description="Local stdio MCP proxy for Alibaba Cloud OpenAPI MCP servers.",
+    )
+    subparsers = parser.add_subparsers(dest="command")
+
+    # --- default proxy sub-command (also works without a sub-command) ---
+    proxy_parser = subparsers.add_parser(
+        "proxy",
+        help="Run the MCP proxy server (default when no sub-command is given).",
+    )
+    _add_proxy_arguments(proxy_parser)
+
+    # Also add proxy arguments to the root parser so that the tool works
+    # without an explicit "proxy" sub-command (backward compatibility).
+    _add_proxy_arguments(parser)
+
+    # --- pre-check sub-command ---
+    precheck_parser = subparsers.add_parser(
+        "pre-check",
+        help="Verify OAuth app installation by running a local callback server.",
+    )
+    precheck_parser.add_argument(
+        "--site-type",
+        dest="site_type",
+        choices=["CN", "INTL"],
+        default=None,
+        help="Alibaba Cloud site type: CN (China, default) or INTL (International).",
+    )
+    precheck_parser.add_argument(
+        "--client-id",
+        dest="oauth_client_id",
+        default=None,
+        help="Custom OAuth application Client ID. "
+        "If not specified, the default for the chosen site type is used.",
+    )
+
     return parser
 
 
-def parse_config(argv: Sequence[str] | None = None) -> AlibabaCloudProxyConfig:
-    args = build_parser().parse_args(argv)
+def parse_config(
+    args: argparse.Namespace | Sequence[str] | None = None,
+) -> AlibabaCloudProxyConfig:
+    """Build a proxy config from parsed args or a raw argv list.
+
+    Accepts either an already-parsed ``argparse.Namespace`` **or** a raw
+    argument list (``Sequence[str]`` / ``None``) for backward compatibility
+    with tests and callers that pass ``sys.argv``-style lists.
+    """
+    if not isinstance(args, argparse.Namespace):
+        args = build_parser().parse_args(args)
+
     values = {
         "site_type": args.site_type,
         "server_url": args.server_url,
@@ -217,9 +265,27 @@ async def run_proxy(config: AlibabaCloudProxyConfig) -> None:
             background_tasks.cancel_scope.cancel()
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def _resolve_site_type(raw: str | None) -> SiteType:
+    """Parse a raw site-type string into a ``SiteType`` enum, defaulting to CN."""
+    normalized = (raw or "").strip().upper() or "CN"
     try:
-        config = parse_config(argv)
+        return SiteType(normalized)
+    except ValueError:
+        print(f"Error: Invalid site type '{raw}'. Must be CN or INTL.", file=sys.stderr)
+        raise SystemExit(1)
+
+
+def _run_precheck_command(args: argparse.Namespace) -> int:
+    """Execute the ``pre-check`` sub-command."""
+    site_type = _resolve_site_type(args.site_type)
+    client_id = getattr(args, "oauth_client_id", None)
+    return run_precheck(site_type, client_id=client_id)
+
+
+def _run_proxy_command(args: argparse.Namespace) -> int:
+    """Execute the proxy (default) command."""
+    try:
+        config = parse_config(args)
     except (ProxyConfigurationError, TokenAcquisitionError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         raise SystemExit(str(exc)) from exc
@@ -250,6 +316,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"Error: {exc}", file=sys.stderr)
         raise SystemExit(str(exc)) from exc
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    if args.command == "pre-check":
+        return _run_precheck_command(args)
+
+    # Default: run the proxy (covers both explicit "proxy" and no sub-command)
+    return _run_proxy_command(args)
 
 
 def _stringify(value: object) -> str | None:
