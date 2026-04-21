@@ -5,7 +5,7 @@ from enum import Enum
 from os import environ
 from typing import Mapping
 
-from alibabacloud_mcp_proxy.auth.ims_access_token import (
+from lazy.alibabacloud_mcp_proxy.auth.ims_access_token import (
     DEFAULT_IMS_CLIENT_ID,
     DEFAULT_IMS_ENDPOINT,
     DEFAULT_IMS_SCOPE,

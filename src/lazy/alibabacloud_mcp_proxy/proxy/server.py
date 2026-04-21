@@ -11,9 +11,9 @@ from mcp.shared.exceptions import McpError
 from mcp.types import ErrorData, INTERNAL_ERROR
 from pydantic import AnyUrl
 
-from alibabacloud_mcp_proxy.config import AlibabaCloudProxyConfig
-from alibabacloud_mcp_proxy.session.reconnecting_session import ReconnectingSession
-from alibabacloud_mcp_proxy.transport.stdio_server import run_stdio_server
+from lazy.alibabacloud_mcp_proxy.config import AlibabaCloudProxyConfig
+from lazy.alibabacloud_mcp_proxy.session.reconnecting_session import ReconnectingSession
+from lazy.alibabacloud_mcp_proxy.transport.stdio_server import run_stdio_server
 
 _LOGGER = logging.getLogger(__name__)
 

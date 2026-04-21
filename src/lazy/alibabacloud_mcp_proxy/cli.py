@@ -8,18 +8,18 @@ from pathlib import Path
 
 import anyio
 
-from alibabacloud_mcp_proxy.auth.ims_access_token import DEFAULT_IMS_CLIENT_ID
-from alibabacloud_mcp_proxy.auth.token_provider import (
+from lazy.alibabacloud_mcp_proxy.auth.ims_access_token import DEFAULT_IMS_CLIENT_ID
+from lazy.alibabacloud_mcp_proxy.auth.token_provider import (
     TokenAcquisitionError,
     build_token_provider,
 )
-from alibabacloud_mcp_proxy.config import AlibabaCloudProxyConfig, ProxyConfigurationError, SiteType
-from alibabacloud_mcp_proxy.discovery import discover_mcp_server_url
-from alibabacloud_mcp_proxy.precheck import run_precheck
-from alibabacloud_mcp_proxy.proxy.server import AlibabaCloudMcpProxyServer
-from alibabacloud_mcp_proxy.session.reconnecting_session import ReconnectingSession
-from alibabacloud_mcp_proxy.transport.upstream_http import StreamableHttpConnectionFactory
-from alibabacloud_mcp_proxy.transport.upstream_sse import SseConnectionFactory
+from lazy.alibabacloud_mcp_proxy.config import AlibabaCloudProxyConfig, ProxyConfigurationError, SiteType
+from lazy.alibabacloud_mcp_proxy.discovery import discover_mcp_server_url
+from lazy.alibabacloud_mcp_proxy.precheck import run_precheck
+from lazy.alibabacloud_mcp_proxy.proxy.server import AlibabaCloudMcpProxyServer
+from lazy.alibabacloud_mcp_proxy.session.reconnecting_session import ReconnectingSession
+from lazy.alibabacloud_mcp_proxy.transport.upstream_http import StreamableHttpConnectionFactory
+from lazy.alibabacloud_mcp_proxy.transport.upstream_sse import SseConnectionFactory
 
 _LOGGER = logging.getLogger(__name__)
 

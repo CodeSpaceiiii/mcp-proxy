@@ -5,8 +5,8 @@ from typing import Any
 import pytest
 from mcp import types
 
-from alibabacloud_mcp_proxy.config import RetrySettings
-from alibabacloud_mcp_proxy.session.reconnecting_session import ReconnectingSession
+from lazy.alibabacloud_mcp_proxy.config import RetrySettings
+from lazy.alibabacloud_mcp_proxy.session.reconnecting_session import ReconnectingSession
 
 
 class FakeTokenProvider:

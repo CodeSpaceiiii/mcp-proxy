@@ -4,11 +4,11 @@ from datetime import UTC, datetime
 
 import pytest
 
-from alibabacloud_mcp_proxy.auth.ims_access_token import (
+from lazy.alibabacloud_mcp_proxy.auth.ims_access_token import (
     extract_token_from_ims_api_response,
     parse_ims_generate_access_token_body,
 )
-from alibabacloud_mcp_proxy.auth.token_provider import TokenAcquisitionError
+from lazy.alibabacloud_mcp_proxy.auth.token_provider import TokenAcquisitionError
 
 
 def test_parse_ims_body_extracts_access_token_pascal_case() -> None:

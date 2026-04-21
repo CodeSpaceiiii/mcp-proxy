@@ -8,8 +8,8 @@ from typing import Protocol
 
 import anyio
 
-from alibabacloud_mcp_proxy.auth.ims_access_token import ImsBearerTokenSource
-from alibabacloud_mcp_proxy.config import TokenSettings
+from lazy.alibabacloud_mcp_proxy.auth.ims_access_token import ImsBearerTokenSource
+from lazy.alibabacloud_mcp_proxy.config import TokenSettings
 
 
 class TokenAcquisitionError(RuntimeError):

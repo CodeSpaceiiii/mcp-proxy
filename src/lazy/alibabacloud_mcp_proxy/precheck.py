@@ -18,7 +18,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Event, Thread
 from urllib.parse import urlencode, urlparse, parse_qs
 
-from alibabacloud_mcp_proxy.config import SiteType
+from lazy.alibabacloud_mcp_proxy.config import SiteType
 
 # ---------------------------------------------------------------------------
 # OAuth endpoint per site type

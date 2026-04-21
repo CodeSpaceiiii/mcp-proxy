@@ -94,7 +94,7 @@ def parse_ims_generate_access_token_body(body: Any) -> tuple[str, datetime | Non
     Accepts dict or JSON string; field names may be PascalCase or snake_case.
     Successful RPC responses often nest fields under ``Data`` (see IMS API).
     """
-    from alibabacloud_mcp_proxy.auth.token_provider import TokenAcquisitionError
+    from lazy.alibabacloud_mcp_proxy.auth.token_provider import TokenAcquisitionError
 
     if body is None:
         raise TokenAcquisitionError("IMS GenerateAccessToken returned an empty body.")
@@ -230,7 +230,7 @@ def extract_token_from_ims_api_response(response: Any) -> tuple[str, datetime | 
 
     Tries ``response['body']`` first, then shallow parse of the full response, then deep search.
     """
-    from alibabacloud_mcp_proxy.auth.token_provider import TokenAcquisitionError
+    from lazy.alibabacloud_mcp_proxy.auth.token_provider import TokenAcquisitionError
 
     if not isinstance(response, dict):
         raise TokenAcquisitionError(
@@ -304,7 +304,7 @@ async def generate_access_token_async(
 
     Uses RPC signing (signature algorithm v2) as required by alibabacloud-tea-openapi.
     """
-    from alibabacloud_mcp_proxy.auth.token_provider import BearerToken, TokenAcquisitionError
+    from lazy.alibabacloud_mcp_proxy.auth.token_provider import BearerToken, TokenAcquisitionError
 
     cred = credential_client or get_default_credential_client()
     try:

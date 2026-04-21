@@ -5,18 +5,18 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from alibabacloud_mcp_proxy.auth.ims_access_token import (
+from lazy.alibabacloud_mcp_proxy.auth.ims_access_token import (
     DEFAULT_IMS_CLIENT_ID,
     DEFAULT_IMS_ENDPOINT,
     DEFAULT_IMS_SCOPE,
 )
-from alibabacloud_mcp_proxy.auth.token_provider import (
+from lazy.alibabacloud_mcp_proxy.auth.token_provider import (
     BearerToken,
     CachedBearerTokenProvider,
     StaticBearerTokenSource,
     build_token_provider,
 )
-from alibabacloud_mcp_proxy.config import TokenSettings
+from lazy.alibabacloud_mcp_proxy.config import TokenSettings
 
 
 class FakeTokenSource:

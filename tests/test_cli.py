@@ -4,9 +4,9 @@ from unittest.mock import patch
 
 import pytest
 
-from alibabacloud_mcp_proxy.cli import main, parse_config
-from alibabacloud_mcp_proxy.config import SiteType
-from alibabacloud_mcp_proxy.auth.token_provider import TokenAcquisitionError
+from lazy.alibabacloud_mcp_proxy.cli import main, parse_config
+from lazy.alibabacloud_mcp_proxy.config import SiteType
+from lazy.alibabacloud_mcp_proxy.auth.token_provider import TokenAcquisitionError
 
 
 def test_parse_config_uses_builtin_defaults_when_no_env(

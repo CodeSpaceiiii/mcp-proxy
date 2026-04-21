@@ -29,22 +29,16 @@ The RAM user or role running the proxy **must** have the following permissions. 
 
 ### Quick Start
 
-Install the package:
+Run the proxy with `uvx` (always fetches the latest version, no install needed):
 
 ```bash
-pip install alibabacloud-mcp-proxy
-```
-
-Run the proxy (it will auto-discover the MCP server URL via your Alibaba Cloud credentials):
-
-```bash
-alibabacloud-mcp-proxy
+uvx lazy.alibabacloud-mcp-proxy
 ```
 
 If you have a custom MCP server URL, you can specify it explicitly:
 
 ```bash
-alibabacloud-mcp-proxy --server-url <YOUR_MCP_SERVER_URL>
+uvx lazy.alibabacloud-mcp-proxy --server-url <YOUR_MCP_SERVER_URL>
 ```
 
 #### MCP Client Configuration (Claude Desktop / Cursor)
@@ -55,8 +49,8 @@ Add the following to your MCP client configuration file (e.g. `claude_desktop_co
 {
   "mcpServers": {
     "alibabacloud": {
-      "command": "alibabacloud-mcp-proxy",
-      "args": []
+      "command": "uvx",
+      "args": ["lazy.alibabacloud-mcp-proxy"]
     }
   }
 }
@@ -69,7 +63,7 @@ You can constrain which MCP tools the proxy is allowed to invoke by specifying a
 #### Example: Allow only ECS describe operations
 
 ```bash
-alibabacloud-mcp-proxy --safety-policy "ecs:describe-*=allow,*=deny"
+uvx lazy.alibabacloud-mcp-proxy --safety-policy "ecs:describe-*=allow,*=deny"
 ```
 
 #### MCP Client Configuration with Safety Policy
@@ -78,8 +72,9 @@ alibabacloud-mcp-proxy --safety-policy "ecs:describe-*=allow,*=deny"
 {
   "mcpServers": {
     "alibabacloud": {
-      "command": "alibabacloud-mcp-proxy",
+      "command": "uvx",
       "args": [
+        "lazy.alibabacloud-mcp-proxy",
         "--safety-policy", "ecs:describe-*=allow,*=deny"
       ]
     }
@@ -91,7 +86,7 @@ You can also set the safety policy via environment variable:
 
 ```bash
 export ALIBABACLOUD_MCP_SAFETY_POLICY="ecs:describe-*=allow,*=deny"
-alibabacloud-mcp-proxy
+uvx lazy.alibabacloud-mcp-proxy
 ```
 
 ### Pre-check
@@ -99,19 +94,19 @@ alibabacloud-mcp-proxy
 Before connecting to the upstream MCP server, you can verify that your local OAuth application is properly installed and authorized by running the **pre-check** command. This starts a lightweight local HTTP server, opens your browser to the Alibaba Cloud OAuth authorization page, and waits for the callback.
 
 ```bash
-alibabacloud-mcp-proxy pre-check
+uvx lazy.alibabacloud-mcp-proxy pre-check
 ```
 
 For international sites:
 
 ```bash
-alibabacloud-mcp-proxy pre-check --site-type INTL
+uvx lazy.alibabacloud-mcp-proxy pre-check --site-type INTL
 ```
 
 With a custom OAuth client ID:
 
 ```bash
-alibabacloud-mcp-proxy pre-check --client-id YOUR_OAUTH_CLIENT_ID
+uvx lazy.alibabacloud-mcp-proxy pre-check --client-id YOUR_OAUTH_CLIENT_ID
 ```
 
 If the pre-check passes, you will see:
@@ -180,3 +175,7 @@ Every CLI flag has a corresponding environment variable. **CLI flags take preced
 ### Requirements
 
 - Python >= 3.13
+
+### License
+
+Apache-2.0

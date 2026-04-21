@@ -9,8 +9,8 @@ from alibabacloud_tea_openapi.exceptions import ClientException as OpenApiClient
 from alibabacloud_tea_openapi.utils_models import Config, OpenApiRequest, Params
 from darabonba.runtime import RuntimeOptions
 
-from alibabacloud_mcp_proxy.auth.ims_access_token import get_default_credential_client
-from alibabacloud_mcp_proxy.config import (
+from lazy.alibabacloud_mcp_proxy.auth.ims_access_token import get_default_credential_client
+from lazy.alibabacloud_mcp_proxy.config import (
     DISCOVERY_ENDPOINT_CN,
     DISCOVERY_ENDPOINT_INTL,
     ProxyConfigurationError,

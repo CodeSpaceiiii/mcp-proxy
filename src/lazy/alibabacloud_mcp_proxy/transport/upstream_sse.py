@@ -5,13 +5,12 @@ from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar
 
 import anyio
-import httpx
 from anyio.abc import TaskGroup
 from mcp import ClientSession, types
-from mcp.client.streamable_http import streamable_http_client
+from mcp.client.sse import sse_client
 from pydantic import AnyUrl
 
-from alibabacloud_mcp_proxy.config import AlibabaCloudProxyConfig
+from lazy.alibabacloud_mcp_proxy.config import AlibabaCloudProxyConfig
 
 LOGGER = logging.getLogger(__name__)
 
@@ -19,7 +18,7 @@ T = TypeVar("T")
 
 
 class _RpcRequest:
-    """A single RPC request dispatched to the background Streamable HTTP task."""
+    """A single RPC request dispatched to the background SSE task."""
 
     __slots__ = ("caller", "result_event", "result", "error")
 
@@ -44,19 +43,21 @@ class _RpcRequest:
         return self.result
 
 
-class StreamableHttpConnection:
-    """A long-lived upstream Streamable HTTP connection that reuses the same session.
+class SseConnection:
+    """A long-lived upstream SSE connection that reuses the same session.
 
-    The ``streamable_http_client`` context manager creates an internal
-    ``TaskGroup`` with its own cancel scope (for the GET SSE stream).
-    To isolate the cancel-scope stack, the entire lifecycle runs inside
-    a **dedicated background task**.  RPC calls are dispatched to that
-    task via a memory-object stream and results are returned via
+    The ``sse_client`` context manager creates an internal ``TaskGroup`` with
+    its own cancel scope.  If that cancel scope leaks into the caller's task,
+    any subsequent ``CancelScope.__enter__/__exit__`` in the same task (e.g.
+    the proxy server's ``RequestResponder``) will fail with::
+
+        RuntimeError: Attempted to exit a cancel scope that isn't the
+        current tasks's current cancel scope
+
+    To isolate the cancel-scope stack, the entire ``sse_client`` lifecycle
+    runs inside a **dedicated background task**.  RPC calls are dispatched
+    to that task via a memory-object stream and results are returned via
     per-request ``anyio.Event`` objects.
-
-    This avoids the previous design of creating a fresh session per RPC
-    call (connect → initialize → call → close), which was extremely
-    wasteful.
     """
 
     def __init__(
@@ -100,15 +101,16 @@ class StreamableHttpConnection:
         )
 
     async def close(self) -> None:
-        """Signal the background task to shut down and wait for it."""
+        """Signal the background SSE task to shut down and wait for it."""
         try:
             await self._request_sender.send(None)
         except (anyio.ClosedResourceError, anyio.BrokenResourceError):
             pass
+        # Wait for the background task to finish its cleanup.
         await self._done_event.wait()
 
 
-async def _streamable_http_background_worker(
+async def _sse_background_worker(
     server_url: str,
     config: AlibabaCloudProxyConfig,
     headers: dict[str, str],
@@ -117,46 +119,40 @@ async def _streamable_http_background_worker(
     done_event: anyio.Event,
     startup_error_holder: list[BaseException],
 ) -> None:
-    """Background task that owns the streamable_http_client context.
+    """Background task that owns the sse_client context.
 
-    All cancel scopes created by ``streamable_http_client`` and
-    ``ClientSession`` live entirely within this task, so they never
-    interfere with the caller's cancel-scope stack.
+    All cancel scopes created by ``sse_client`` and ``ClientSession`` live
+    entirely within this task, so they never interfere with the caller's
+    cancel-scope stack.
 
-    The session is initialized once and then reused for all subsequent
-    RPC calls until the connection is closed or an error occurs.
+    **Important**: all exceptions are caught and handled here so they never
+    propagate into the host ``TaskGroup`` (which would crash the entire
+    proxy with ``"unhandled errors in a TaskGroup"``).
     """
     try:
-        http_client = httpx.AsyncClient(
+        async with sse_client(
+            server_url,
             headers=headers,
-            timeout=httpx.Timeout(
-                connect=config.connect_timeout_seconds,
-                read=config.read_timeout_seconds,
-                write=config.read_timeout_seconds,
-                pool=config.connect_timeout_seconds,
-            ),
-            follow_redirects=True,
-        )
-        async with http_client:
-            async with streamable_http_client(
-                server_url,
-                http_client=http_client,
-                terminate_on_close=False,
-            ) as streams:
-                async with ClientSession(streams[0], streams[1]) as session:
-                    await session.initialize()
-                    ready_event.set()
+            timeout=config.connect_timeout_seconds,
+            sse_read_timeout=config.read_timeout_seconds,
+        ) as streams:
+            async with ClientSession(streams[0], streams[1]) as session:
+                await session.initialize()
+                # Signal that the session is ready.
+                ready_event.set()
 
-                    async with request_receiver:
-                        async for request in request_receiver:
-                            if request is None:
-                                break
-                            try:
-                                result = await request.caller(session)
-                                request.set_result(result)
-                            except BaseException as exc:
-                                request.set_error(exc)
+                async with request_receiver:
+                    async for request in request_receiver:
+                        if request is None:
+                            # Shutdown signal.
+                            break
+                        try:
+                            result = await request.caller(session)
+                            request.set_result(result)
+                        except BaseException as exc:
+                            request.set_error(exc)
     except BaseException as exc:
+        # Flatten ExceptionGroup for clearer logging.
         root_cause = exc
         if isinstance(exc, BaseExceptionGroup):
             exceptions = exc.exceptions
@@ -167,21 +163,17 @@ async def _streamable_http_background_worker(
             startup_error_holder.append(root_cause)
             ready_event.set()
         else:
-            LOGGER.error(
-                "Streamable HTTP background worker crashed: %s",
-                root_cause,
-                exc_info=True,
-            )
+            LOGGER.error("SSE background worker crashed: %s", root_cause, exc_info=True)
     finally:
         done_event.set()
 
 
-class StreamableHttpConnectionFactory:
-    """Factory that creates Streamable HTTP connections with background worker tasks.
+class SseConnectionFactory:
+    """Factory that creates SSE connections with background worker tasks.
 
     Requires an external ``TaskGroup`` (passed via ``set_task_group``) to
-    spawn background workers, keeping the ``streamable_http_client``'s
-    cancel scope in a dedicated child task.
+    spawn background workers.  This ensures the ``sse_client``'s cancel
+    scope lives in a dedicated child task, not in the caller's task.
     """
 
     def __init__(self, config: AlibabaCloudProxyConfig, server_url: str) -> None:
@@ -190,7 +182,7 @@ class StreamableHttpConnectionFactory:
         self._task_group: TaskGroup | None = None
 
     def set_task_group(self, task_group: TaskGroup) -> None:
-        """Attach the long-lived task group used to spawn HTTP workers."""
+        """Attach the long-lived task group used to spawn SSE workers."""
         self._task_group = task_group
 
     def _build_headers(self, bearer_token: str) -> dict[str, str]:
@@ -199,11 +191,16 @@ class StreamableHttpConnectionFactory:
             "user-agent": "alibabacloud-mcp-proxy/0.1.0",
         }
 
-    async def connect(self, *, bearer_token: str) -> StreamableHttpConnection:
-        """Create a new Streamable HTTP connection running in a background task."""
+    async def connect(self, *, bearer_token: str) -> SseConnection:
+        """Create a new SSE connection running in a background task.
+
+        The ``sse_client`` context (and its internal ``TaskGroup``) lives
+        entirely inside a background task spawned on the external task
+        group.  This keeps the caller's cancel-scope stack clean.
+        """
         if self._task_group is None:
             raise RuntimeError(
-                "StreamableHttpConnectionFactory requires a task group. "
+                "SseConnectionFactory requires a task group. "
                 "Call set_task_group() before connect()."
             )
 
@@ -215,8 +212,10 @@ class StreamableHttpConnectionFactory:
         startup_error_holder: list[BaseException] = []
         headers = self._build_headers(bearer_token)
 
+        # Spawn the worker in the external task group so the sse_client's
+        # cancel scope is confined to the child task.
         self._task_group.start_soon(
-            _streamable_http_background_worker,
+            _sse_background_worker,
             self._server_url,
             self._config,
             headers,
@@ -226,12 +225,13 @@ class StreamableHttpConnectionFactory:
             startup_error_holder,
         )
 
+        # Wait for the SSE session to be ready (or fail).
         await ready_event.wait()
 
         if startup_error_holder:
             raise startup_error_holder[0]
 
-        return StreamableHttpConnection(
+        return SseConnection(
             request_sender=request_sender,
             done_event=done_event,
         )
