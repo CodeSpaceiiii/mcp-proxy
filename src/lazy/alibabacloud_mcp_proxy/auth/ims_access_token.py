@@ -18,7 +18,7 @@ DEFAULT_IMS_SCOPE = "/internal/acs/openapi"
 DEFAULT_IMS_ENDPOINT = "ramoauth-pre.aliyuncs.com"
 
 IMS_ACTION = "GenerateAccessToken"
-IMS_VERSION = "2019-08-15"
+IMS_VERSION = "2026-04-21"
 
 _LOGGER = logging.getLogger(__name__)
 
