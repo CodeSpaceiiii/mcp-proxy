@@ -122,7 +122,7 @@ def _add_proxy_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--ims-endpoint",
         dest="ims_endpoint",
-        help="IMS API endpoint hostname. Default ims.aliyuncs.com or ALIBABACLOUD_MCP_IMS_ENDPOINT.",
+        help="IMS API endpoint hostname. Default ramoauth.aliyuncs.com (CN) / ramoauth.alibabacloudcs.com (INTL), or ALIBABACLOUD_MCP_IMS_ENDPOINT.",
     )
     parser.add_argument(
         "--safety-policy",

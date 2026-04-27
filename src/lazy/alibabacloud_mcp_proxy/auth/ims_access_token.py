@@ -15,7 +15,7 @@ from darabonba.runtime import RuntimeOptions
 
 DEFAULT_IMS_CLIENT_ID = "4071151845732613353"
 DEFAULT_IMS_SCOPE = "/internal/acs/openapi"
-DEFAULT_IMS_ENDPOINT = "ramoauth-pre.aliyuncs.com"
+DEFAULT_IMS_ENDPOINT = "ramoauth.aliyuncs.com"
 
 IMS_ACTION = "GenerateAccessToken"
 IMS_VERSION = "2026-04-21"

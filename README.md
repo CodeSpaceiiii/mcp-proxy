@@ -144,7 +144,7 @@ Every CLI flag has a corresponding environment variable. **CLI flags take preced
 | `--token-command` | `ALIBABACLOUD_MCP_TOKEN_COMMAND` | — | Shell command that prints a bearer token or JSON with `access_token`. |
 | `--client-id` | `ALIBABACLOUD_MCP_CLIENT_ID` | *(per site type)* | IMS `GenerateAccessToken` ClientId. Defaults to `4071151845732613353` (CN) or `4195410055503316452` (INTL). |
 | `--scope` | `ALIBABACLOUD_MCP_SCOPE` | `/internal/acs/openapi` | IMS `GenerateAccessToken` Scope. |
-| `--ims-endpoint` | `ALIBABACLOUD_MCP_IMS_ENDPOINT` | `ims.aliyuncs.com` | IMS API endpoint hostname. |
+| `--ims-endpoint` | `ALIBABACLOUD_MCP_IMS_ENDPOINT` | `ramoauth.aliyuncs.com` (CN) / `ramoauth.alibabacloudcs.com` (INTL) | IMS API endpoint hostname. Auto-selected based on `--site-type`. |
 
 #### Safety Policy
 

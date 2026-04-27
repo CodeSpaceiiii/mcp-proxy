@@ -11,6 +11,10 @@ from lazy.alibabacloud_mcp_proxy.auth.ims_access_token import (
     DEFAULT_IMS_SCOPE,
 )
 
+# Default IMS endpoints per site type.
+DEFAULT_IMS_ENDPOINT_CN = DEFAULT_IMS_ENDPOINT  # "ramoauth.aliyuncs.com"
+DEFAULT_IMS_ENDPOINT_INTL = "ramoauth.alibabacloudcs.com"
+
 
 class SiteType(Enum):
     """Alibaba Cloud site type."""
@@ -116,9 +120,12 @@ class AlibabaCloudProxyConfig:
 
         server_url = (merged.get("server_url") or "").strip() or None
 
-        # Choose default IMS client ID based on site type when not explicitly set.
+        # Choose default IMS client ID and endpoint based on site type when not explicitly set.
         default_client_id = (
             DEFAULT_IMS_CLIENT_ID_INTL if site_type is SiteType.INTL else DEFAULT_IMS_CLIENT_ID_CN
+        )
+        default_ims_endpoint = (
+            DEFAULT_IMS_ENDPOINT_INTL if site_type is SiteType.INTL else DEFAULT_IMS_ENDPOINT_CN
         )
 
         debug = (merged.get("debug") or "").strip().lower() in ("true", "1", "yes")
@@ -144,7 +151,7 @@ class AlibabaCloudProxyConfig:
                 token_command=(merged.get("token_command") or "").strip() or None,
                 ims_client_id=(merged.get("ims_client_id") or "").strip() or default_client_id,
                 ims_scope=(merged.get("ims_scope") or "").strip() or DEFAULT_IMS_SCOPE,
-                ims_endpoint=(merged.get("ims_endpoint") or "").strip() or DEFAULT_IMS_ENDPOINT,
+                ims_endpoint=(merged.get("ims_endpoint") or "").strip() or default_ims_endpoint,
                 refresh_skew_seconds=_parse_int(
                     merged.get("refresh_skew_seconds"),
                     default=60,
